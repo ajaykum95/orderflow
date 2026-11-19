@@ -1,0 +1,14 @@
+server:
+  port: 8080
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/orderflow
+    username: orderflow
+    password: orderflow
+  jpa:
+    hibernate:
+      ddl-auto: update   # सीखने के लिए ठीक है; बाद में Flyway लगाएँगे
+app:
+  jwt:
+    secret: change-me-change-me-change-me-change-me-123456   # कम से कम 32 अक्षर
+    expiry-minutes: 60
