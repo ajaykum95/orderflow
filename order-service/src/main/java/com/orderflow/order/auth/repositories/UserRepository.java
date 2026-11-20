@@ -1,5 +1,6 @@
-package com.orderflow.order.auth;
+package com.orderflow.order.auth.repositories;
 
+import com.orderflow.order.auth.entities.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.Optional;
 

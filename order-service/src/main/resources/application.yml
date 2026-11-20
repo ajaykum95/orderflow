@@ -7,8 +7,8 @@ spring:
     password: orderflow
   jpa:
     hibernate:
-      ddl-auto: update   # सीखने के लिए ठीक है; बाद में Flyway लगाएँगे
+      ddl-auto: update
 app:
   jwt:
-    secret: change-me-change-me-change-me-change-me-123456   # कम से कम 32 अक्षर
+    secret: ajuugGHDCVH@#scjbvhsgvgvshdcgsvgv@&*sfhhvh
     expiry-minutes: 60
