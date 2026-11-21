@@ -12,3 +12,32 @@ app:
   jwt:
     secret: ajuugGHDCVH@#scjbvhsgvgvshdcgsvgv@&*sfhhvh
     expiry-minutes: 60
+  payment:
+    base-url: http://localhost:8081
+    connect-timeout-ms: 1000
+    read-timeout-ms: 2000
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      paymentService:
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 10                 # आख़िरी 10 calls देखो
+        minimumNumberOfCalls: 5               # कम से कम 5 calls के बाद ही फैसला
+        failureRateThreshold: 50              # 50% से ज़्यादा fail -> OPEN
+        waitDurationInOpenState: 15s          # 15 सेकंड बंद रहेगा
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        recordExceptions:
+          - com.orderflow.order.payment.exceptions.PaymentUnavailableException
+  retry:
+    instances:
+      paymentService:
+        maxAttempts: 3
+        waitDuration: 500ms
+        enableExponentialBackoff: true
+        exponentialBackoffMultiplier: 2
+        retryExceptions:
+          - com.orderflow.order.payment.exceptions.PaymentUnavailableException
+        ignoreExceptions:
+          - io.github.resilience4j.circuitbreaker.CallNotPermittedException

@@ -1,0 +1,11 @@
+#Open postgresql Console
+docker exec -it orderflow-postgres-1 psql -U orderflow -d orderflow
+
+#To Up Docker
+compose docker up -d
+
+#To Shutdown docker
+compose docker down -v
+
+#Run application
+mvn spring-boot:run

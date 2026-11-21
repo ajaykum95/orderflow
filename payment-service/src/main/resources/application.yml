@@ -1,0 +1,11 @@
+server:
+  port: 8081
+  error:
+    include-message: always   # error में असली message दिखे
+
+# जानबूझकर गड़बड़ी (chaos) की शुरुआती सेटिंग; चलते-चलते /api/chaos से बदल सकते हैं
+payment:
+  chaos:
+    failure-rate: 0.0     # 0.0 से 1.0; इतनी बार 503 (gateway down)
+    slow-rate: 0.0        # इतनी बार जवाब धीमा
+    slow-delay-ms: 3000   # धीमे जवाब में कितनी देर
