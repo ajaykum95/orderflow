@@ -8,6 +8,12 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
+  temporal:
+    connection:
+      target: localhost:7233
+    namespace: default
+    workers-auto-discovery:
+      packages: com.orderflow.order.workflow
 app:
   jwt:
     secret: ajuugGHDCVH@#scjbvhsgvgvshdcgsvgv@&*sfhhvh
@@ -16,6 +22,14 @@ app:
     base-url: http://localhost:8081
     connect-timeout-ms: 1000
     read-timeout-ms: 2000
+  workflow:
+    # इसी list का क्रम तय करता है कि अगला step क्या होगा
+    steps:
+      - RESERVE_STOCK
+      - PAYMENT
+      - INVOICE
+      - NOTIFY
+    simulate-invoice-failure: false   # जाँच के लिए true करके refund वाला rollback देख सकते हैं
 
 resilience4j:
   circuitbreaker:

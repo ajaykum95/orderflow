@@ -8,6 +8,7 @@ import com.orderflow.order.order.entities.OrderItem;
 import com.orderflow.order.order.entities.OrderStatus;
 import com.orderflow.order.order.repositories.OrderRepository;
 import com.orderflow.order.order.services.OrderService;
+import com.orderflow.order.workflow.OrderWorkflowStarter;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
@@ -22,10 +23,14 @@ public class OrderServiceImpl implements OrderService {
 
     private final OrderRepository orderRepository;
     private final ProductService productService;
+    private final OrderWorkflowStarter workflowStarter;
 
-    public OrderServiceImpl(OrderRepository orderRepository, ProductService productService) {
+    public OrderServiceImpl(
+            OrderRepository orderRepository, ProductService productService,
+            OrderWorkflowStarter workflowStarter) {
         this.orderRepository = orderRepository;
         this.productService = productService;
+        this.workflowStarter = workflowStarter;
     }
 
     @Override
@@ -44,6 +49,7 @@ public class OrderServiceImpl implements OrderService {
 
         try {
             Order saved = orderRepository.save(order);
+            workflowStarter.start(saved.getId());           // नया: Saga चालू
             return new CreateResult(OrderResponse.from(saved), true);
         } catch (DataIntegrityViolationException e) {
             Order winner = orderRepository.findByCustomerEmailAndIdempotencyKey(email, key)
