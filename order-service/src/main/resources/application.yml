@@ -8,12 +8,24 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
+  data:
+    mongodb:
+      # Timeouts छोटे हैं: Mongo बंद हो तो हम 30 सेकंड नहीं अटकेंगे (पहले जैसे payment में timeout ज़रूरी था)
+      uri: mongodb://localhost:27017/orderflow?serverSelectionTimeoutMS=2000&connectTimeoutMS=2000&socketTimeoutMS=3000
+      auto-index-creation: true     # @Indexed तभी बनते हैं जब यह true हो (डिफ़ॉल्ट false है)
   temporal:
     connection:
       target: localhost:7233
     namespace: default
     workers-auto-discovery:
       packages: com.orderflow.order.workflow
+  mail:
+    host: localhost
+    port: 1025            # MailHog का SMTP port (docker-compose में पहले से खुला है)
+    properties:
+      mail.smtp.connectiontimeout: 3000   # timeout ज़रूरी है, वरना बंद SMTP पर हम अटके रहेंगे
+      mail.smtp.timeout: 5000
+      mail.smtp.writetimeout: 5000
 app:
   jwt:
     secret: ajuugGHDCVH@#scjbvhsgvgvshdcgsvgv@&*sfhhvh
@@ -30,7 +42,23 @@ app:
       - INVOICE
       - NOTIFY
     simulate-invoice-failure: false   # जाँच के लिए true करके refund वाला rollback देख सकते हैं
-
+  invoice:
+    seller-name: OrderFlow Demo Store
+    seller-address: "221B Demo Street, Gurugram, Haryana"
+    seller-gstin: "06AAAAA0000A1Z5"      # नकली GSTIN
+    currency: INR
+    # टैक्स की दरें: GST 18% चाहिए तो एक नियम; CGST+SGST में बाँटना हो तो नीचे वाला रूप
+    tax-rules:
+      - name: CGST
+        rate: 9
+      - name: SGST
+        rate: 9
+  notification:
+    from: no-reply@orderflow.local
+    enabled: true
+  report:
+    # हर रात 12:05 (भारतीय समय) बीते कल की report। जाँचने के लिए "0 * * * * *" करें (हर मिनट)
+    daily-cron: "0 5 0 * * *"
 resilience4j:
   circuitbreaker:
     instances:

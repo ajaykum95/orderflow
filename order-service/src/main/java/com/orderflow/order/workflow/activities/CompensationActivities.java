@@ -2,7 +2,6 @@ package com.orderflow.order.workflow.activities;
 
 import io.temporal.activity.ActivityInterface;
 
-// Rollback वाले काम। इन्हें ज़्यादा बार retry करने दिया जाता है, क्योंकि rollback अधूरा नहीं रहना चाहिए।
 @ActivityInterface
 public interface CompensationActivities {
 
@@ -11,4 +10,7 @@ public interface CompensationActivities {
     void refundPayment(String paymentId);
 
     void markFailedIfPending(Long orderId);
+
+    // नया: rollback पूरा होने पर audit में कारण दर्ज करना
+    void recordRollback(Long orderId, String failedStep, String reason);
 }

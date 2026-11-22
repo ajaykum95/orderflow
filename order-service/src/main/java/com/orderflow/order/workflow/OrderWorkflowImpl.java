@@ -14,6 +14,7 @@ import org.slf4j.Logger;
 import java.time.Duration;
 import java.util.List;
 
+// ⚠️ Workflow के code में कभी: random, current time, database, HTTP call, Thread.sleep नहीं।
 @WorkflowImpl(taskQueues = WorkflowConstants.TASK_QUEUE)
 public class OrderWorkflowImpl implements OrderWorkflow {
 
@@ -63,7 +64,16 @@ public class OrderWorkflowImpl implements OrderWorkflow {
                         saga.addCompensation(compensations::refundPayment, paymentId);
                     }
                     case WorkflowConstants.INVOICE -> activities.generateInvoice(orderId);
-                    case WorkflowConstants.NOTIFY -> activities.sendNotification(orderId);
+
+                    case WorkflowConstants.NOTIFY -> {
+                        // Email "कोशिश वाला" step है: फेल हो तो paid order रद्द नहीं करते, सिर्फ़ चेतावनी
+                        try {
+                            activities.sendNotification(orderId);
+                        } catch (ActivityFailure e) {
+                            log.warn("Order {} की email नहीं जा सकी (order फिर भी पूरा होगा): {}",
+                                    orderId, rootMessage(e));
+                        }
+                    }
                     default -> throw ApplicationFailure.newNonRetryableFailure(
                             "Unknown workflow step: " + step, "BAD_CONFIG");
                 }
@@ -74,12 +84,27 @@ public class OrderWorkflowImpl implements OrderWorkflow {
             return "COMPLETED";
 
         } catch (ActivityFailure e) {
+            String failedStep = currentStep;          // rollback शुरू होने से पहले याद रख लो कि कहाँ फेल हुआ
             String reason = rootMessage(e);
-            log.warn("Order {} got failed at step {}: {}", orderId, currentStep, reason);
+            log.warn("Order {} फेल हुआ at step {}: {}", orderId, failedStep, reason);
 
             currentStep = "ROLLING_BACK";
             saga.compensate();
             compensations.markFailedIfPending(orderId);
+
+            // Audit में कारण दर्ज करो (यह भी "कोशिश वाला" है; इससे बाकी काम न रुके)
+            try {
+                compensations.recordRollback(orderId, failedStep, reason);
+            } catch (ActivityFailure ae) {
+                log.warn("Order {} का rollback-audit दर्ज नहीं हो सका: {}", orderId, rootMessage(ae));
+            }
+
+            currentStep = "NOTIFYING_CANCELLATION";
+            try {
+                activities.sendCancellationNotification(orderId);
+            } catch (ActivityFailure ne) {
+                log.warn("Order {} की cancellation email नहीं जा सकी: {}", orderId, rootMessage(ne));
+            }
 
             currentStep = "ROLLED_BACK";
             return "ROLLED_BACK: " + reason;

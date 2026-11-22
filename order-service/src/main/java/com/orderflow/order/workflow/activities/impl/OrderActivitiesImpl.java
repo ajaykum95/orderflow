@@ -1,5 +1,10 @@
 package com.orderflow.order.workflow.activities.impl;
 
+import com.orderflow.order.audit.entities.AuditEventType;
+import com.orderflow.order.audit.services.AuditService;
+import com.orderflow.order.invoice.dtos.InvoiceDtos.InvoiceResponse;
+import com.orderflow.order.invoice.services.InvoiceService;
+import com.orderflow.order.notification.services.NotificationService;
 import com.orderflow.order.order.entities.Order;
 import com.orderflow.order.order.repositories.OrderRepository;
 import com.orderflow.order.payment.dtos.PaymentDtos.ChargeCommand;
@@ -17,27 +22,36 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ResponseStatusException;
 
-// दो तरह की गड़बड़ी, और Temporal को दोनों अलग बतानी हैं:
-//  - अस्थायी (payment service down, timeout)    -> सामान्य exception        -> Temporal खुद retry करेगा
-//  - पक्की (stock नहीं है, payment decline)      -> NonRetryableFailure      -> retry बेकार, सीधा rollback
+import java.util.Map;
+
 @Component
 @ActivityImpl(taskQueues = WorkflowConstants.TASK_QUEUE)
 public class OrderActivitiesImpl implements OrderActivities {
 
     private static final Logger log = LoggerFactory.getLogger(OrderActivitiesImpl.class);
+    private static final String SYSTEM = "system:workflow";
 
     private final OrderFulfillmentService fulfillment;
     private final OrderRepository orderRepository;
     private final PaymentProvider paymentProvider;
+    private final InvoiceService invoiceService;
+    private final NotificationService notificationService;
+    private final AuditService audit;                        // नया
     private final WorkflowProperties props;
 
     public OrderActivitiesImpl(OrderFulfillmentService fulfillment,
                                OrderRepository orderRepository,
                                PaymentProvider paymentProvider,
+                               InvoiceService invoiceService,
+                               NotificationService notificationService,
+                               AuditService audit,
                                WorkflowProperties props) {
         this.fulfillment = fulfillment;
         this.orderRepository = orderRepository;
         this.paymentProvider = paymentProvider;
+        this.invoiceService = invoiceService;
+        this.notificationService = notificationService;
+        this.audit = audit;
         this.props = props;
     }
 
@@ -51,6 +65,7 @@ public class OrderActivitiesImpl implements OrderActivities {
         } catch (IllegalStateException e) {
             throw ApplicationFailure.newNonRetryableFailure(e.getMessage(), "ORDER_STATE");
         }
+        audit.record(orderId, AuditEventType.STOCK_RESERVED, SYSTEM, Map.of());
     }
 
     @Override
@@ -60,13 +75,11 @@ public class OrderActivitiesImpl implements OrderActivities {
 
         PaymentResult result;
         try {
-            // key हर order की पक्की है; Temporal retry करे तब भी पैसा दोबारा नहीं कटेगा
             result = paymentProvider.charge(new ChargeCommand(
                     orderId, order.getTotalAmount(), "INR", "order-" + orderId + "-charge"));
         } catch (ResponseStatusException e) {
             throw ApplicationFailure.newNonRetryableFailure("Payment rejected: " + e.getReason(), "PAYMENT_REJECTED");
         }
-        // PaymentUnavailableException / CallNotPermittedException जानबूझकर नहीं पकड़े -> Temporal retry करेगा
 
         if (result.status() != PaymentStatus.SUCCESS) {
             throw ApplicationFailure.newNonRetryableFailure("Payment declined", "PAYMENT_DECLINED");
@@ -78,22 +91,44 @@ public class OrderActivitiesImpl implements OrderActivities {
         } catch (IllegalStateException e) {
             throw ApplicationFailure.newNonRetryableFailure(e.getMessage(), "ORDER_STATE");
         }
+        audit.record(orderId, AuditEventType.PAYMENT_SUCCEEDED, SYSTEM, Map.of(
+                "paymentId", result.paymentId(),
+                "amount", order.getTotalAmount().toPlainString()));
         return result.paymentId();
     }
 
     @Override
     public void generateInvoice(Long orderId) {
-        // TODO Module 6: असली invoice + PDF
-        log.info("[order {}] (placeholder) invoice बना रहे हैं", orderId);
         if (props.isSimulateInvoiceFailure()) {
             throw ApplicationFailure.newNonRetryableFailure("Invoice generation failed (simulated)", "INVOICE_FAILED");
+        }
+        try {
+            InvoiceResponse invoice = invoiceService.generateForOrder(orderId);
+            log.info("[order {}] invoice बना: {}", orderId, invoice.invoiceNumber());
+            audit.record(orderId, AuditEventType.INVOICE_ISSUED, SYSTEM,
+                    Map.of("invoiceNumber", invoice.invoiceNumber()));
+        } catch (IllegalStateException e) {
+            throw ApplicationFailure.newNonRetryableFailure(e.getMessage(), "INVOICE_STATE");
         }
     }
 
     @Override
     public void sendNotification(Long orderId) {
-        // TODO Module 7: असली email (MailHog)
-        log.info("[order {}] (placeholder) email भेज रहे हैं", orderId);
+        try {
+            notificationService.sendOrderConfirmation(orderId);
+        } catch (IllegalStateException e) {
+            throw ApplicationFailure.newNonRetryableFailure(e.getMessage(), "NOTIFICATION_STATE");
+        }
+        audit.record(orderId, AuditEventType.NOTIFICATION_SENT, SYSTEM, Map.of("type", "ORDER_CONFIRMED"));
+    }
+
+    @Override
+    public void sendCancellationNotification(Long orderId) {
+        try {
+            notificationService.sendOrderCancellation(orderId);
+        } catch (IllegalStateException e) {
+            throw ApplicationFailure.newNonRetryableFailure(e.getMessage(), "NOTIFICATION_STATE");
+        }
     }
 
     @Override
@@ -104,5 +139,6 @@ public class OrderActivitiesImpl implements OrderActivities {
             throw ApplicationFailure.newNonRetryableFailure(e.getMessage(), "ORDER_STATE");
         }
         log.info("[order {}] पूरा हुआ", orderId);
+        audit.record(orderId, AuditEventType.ORDER_COMPLETED, SYSTEM, Map.of());
     }
 }

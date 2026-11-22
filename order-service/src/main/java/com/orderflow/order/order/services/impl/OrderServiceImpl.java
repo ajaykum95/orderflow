@@ -1,5 +1,7 @@
 package com.orderflow.order.order.services.impl;
 
+import com.orderflow.order.audit.entities.AuditEventType;
+import com.orderflow.order.audit.services.AuditService;
 import com.orderflow.order.catalog.dtos.CatalogDtos.ProductResponse;
 import com.orderflow.order.catalog.services.ProductService;
 import com.orderflow.order.order.dtos.OrderDtos.*;
@@ -17,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class OrderServiceImpl implements OrderService {
@@ -24,15 +27,19 @@ public class OrderServiceImpl implements OrderService {
     private final OrderRepository orderRepository;
     private final ProductService productService;
     private final OrderWorkflowStarter workflowStarter;
+    private final AuditService auditService;               // नया
 
-    public OrderServiceImpl(
-            OrderRepository orderRepository, ProductService productService,
-            OrderWorkflowStarter workflowStarter) {
+    public OrderServiceImpl(OrderRepository orderRepository,
+                            ProductService productService,
+                            OrderWorkflowStarter workflowStarter,
+                            AuditService auditService) {
         this.orderRepository = orderRepository;
         this.productService = productService;
         this.workflowStarter = workflowStarter;
+        this.auditService = auditService;
     }
 
+    // जानबूझकर @Transactional नहीं: order पहले पक्का save (commit) हो, तभी workflow चालू हो
     @Override
     public CreateResult create(String email, String key, CreateOrderRequest request) {
 
@@ -49,7 +56,13 @@ public class OrderServiceImpl implements OrderService {
 
         try {
             Order saved = orderRepository.save(order);
-            workflowStarter.start(saved.getId());           // नया: Saga चालू
+
+            // नया: audit में पहली घटना (workflow चालू होने से पहले, ताकि क्रम सही रहे)
+            auditService.record(saved.getId(), AuditEventType.ORDER_CREATED, email, Map.of(
+                    "totalAmount", saved.getTotalAmount().toPlainString(),
+                    "itemCount", saved.getItems().size()));
+
+            workflowStarter.start(saved.getId());
             return new CreateResult(OrderResponse.from(saved), true);
         } catch (DataIntegrityViolationException e) {
             Order winner = orderRepository.findByCustomerEmailAndIdempotencyKey(email, key)
