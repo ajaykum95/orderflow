@@ -11,7 +11,7 @@ spring:
   data:
     mongodb:
       # Timeouts छोटे हैं: Mongo बंद हो तो हम 30 सेकंड नहीं अटकेंगे (पहले जैसे payment में timeout ज़रूरी था)
-      uri: mongodb://localhost:27017/orderflow?serverSelectionTimeoutMS=2000&connectTimeoutMS=2000&socketTimeoutMS=3000
+      uri: mongodb://localhost:27018/orderflow?serverSelectionTimeoutMS=2000&connectTimeoutMS=2000&socketTimeoutMS=3000
       auto-index-creation: true     # @Indexed तभी बनते हैं जब यह true हो (डिफ़ॉल्ट false है)
   temporal:
     connection:

@@ -28,12 +28,10 @@ public class AuditServiceImpl implements AuditService {
     @Override
     public void record(Long orderId, AuditEventType type, String actor, Map<String, Object> details) {
         try {
-            // insert (save नहीं): save पुरानी घटना को ऊपर से लिख देता, insert दोहराव पर मना करता है
             repository.insert(new AuditEvent(orderId, type, actor, details));
         } catch (DuplicateKeyException e) {
-            log.debug("[order {}] {} पहले से दर्ज है", orderId, type);   // Temporal का दोबारा चलना; सामान्य बात
+            log.debug("[order {}] {} already registered.", orderId, type);
         } catch (Exception e) {
-            // Mongo बंद/धीमा हो तो भी order का काम न रुके; सिर्फ़ आवाज़ करो
             log.error("[order {}] audit घटना {} दर्ज नहीं हो सकी (order पर असर नहीं)", orderId, type, e);
         }
     }
@@ -41,7 +39,6 @@ public class AuditServiceImpl implements AuditService {
     @Override
     public List<AuditEventResponse> timeline(Long orderId) {
         return repository.findByOrderId(orderId).stream()
-                // पहले समय के हिसाब से; एक ही पल हो तो घटनाओं के स्वाभाविक क्रम से
                 .sorted(Comparator.comparing(AuditEvent::getTimestamp)
                         .thenComparing(e -> AuditEventType.valueOf(e.getType())))
                 .map(AuditEventResponse::from)

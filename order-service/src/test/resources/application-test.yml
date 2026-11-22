@@ -1,0 +1,17 @@
+app:
+  notification:
+    enabled: false
+  report:
+    daily-cron: "-"
+  invoice:
+    tax-rules:
+      - name: CGST
+        rate: 9
+      - name: SGST
+        rate: 9
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      paymentService:
+        waitDurationInOpenState: 2s

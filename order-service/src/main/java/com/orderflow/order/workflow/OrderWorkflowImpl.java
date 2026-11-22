@@ -6,6 +6,7 @@ import io.temporal.activity.ActivityOptions;
 import io.temporal.common.RetryOptions;
 import io.temporal.failure.ActivityFailure;
 import io.temporal.failure.ApplicationFailure;
+import io.temporal.failure.TemporalFailure;
 import io.temporal.spring.boot.WorkflowImpl;
 import io.temporal.workflow.Saga;
 import io.temporal.workflow.Workflow;
@@ -84,7 +85,7 @@ public class OrderWorkflowImpl implements OrderWorkflow {
             return "COMPLETED";
 
         } catch (ActivityFailure e) {
-            String failedStep = currentStep;          // rollback शुरू होने से पहले याद रख लो कि कहाँ फेल हुआ
+            String failedStep = currentStep;
             String reason = rootMessage(e);
             log.warn("Order {} फेल हुआ at step {}: {}", orderId, failedStep, reason);
 
@@ -92,7 +93,6 @@ public class OrderWorkflowImpl implements OrderWorkflow {
             saga.compensate();
             compensations.markFailedIfPending(orderId);
 
-            // Audit में कारण दर्ज करो (यह भी "कोशिश वाला" है; इससे बाकी काम न रुके)
             try {
                 compensations.recordRollback(orderId, failedStep, reason);
             } catch (ActivityFailure ae) {
@@ -116,9 +116,12 @@ public class OrderWorkflowImpl implements OrderWorkflow {
         return currentStep;
     }
 
+    // सबसे अंदर की असली वजह, साफ़ संदेश के साथ।
+    // Temporal की getMessage() में message='...', type='...', nonRetryable=... जैसी सजावट जुड़ी होती है;
+    // getOriginalMessage() सिर्फ़ वही असली संदेश देता है जो activity ने लिखा था (जैसे "Payment declined")
     private static String rootMessage(Throwable t) {
         Throwable c = t;
         while (c.getCause() != null) c = c.getCause();
-        return c.getMessage();
+        return c instanceof TemporalFailure tf ? tf.getOriginalMessage() : c.getMessage();
     }
 }

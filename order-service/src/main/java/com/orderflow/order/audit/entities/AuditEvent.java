@@ -7,11 +7,6 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import java.time.Instant;
 import java.util.Map;
 
-// MongoDB में हर घटना एक document है। इसमें कोई setter नहीं: एक बार लिखा तो बदलता नहीं।
-//
-// _id हम खुद बनाते हैं:  "order-5:PAYMENT_SUCCEEDED"
-// इसलिए एक order की एक घटना सिर्फ़ एक बार दर्ज हो सकती है। Temporal activity दोबारा चले,
-// तो दूसरी बार लिखने पर Mongo खुद मना कर देता है (duplicate key) और हम उसे चुपचाप छोड़ देते हैं।
 @Document(collection = "audit_events")
 public class AuditEvent {
 
@@ -21,14 +16,14 @@ public class AuditEvent {
     @Indexed
     private Long orderId;
 
-    private String type;      // AuditEventType का नाम
+    private String type;
 
-    private String actor;     // किसने किया: customer का email, या "system:workflow"
+    private String actor;
 
     @Indexed
     private Instant timestamp;
 
-    private Map<String, Object> details;   // घटना की अतिरिक्त जानकारी (paymentId, invoiceNumber, कारण...)
+    private Map<String, Object> details;
 
     protected AuditEvent() {}
 

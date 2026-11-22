@@ -1,7 +1,6 @@
-package com.orderflow.order.invoice;
+package com.orderflow.order.invoice.services;
 
 import com.orderflow.order.invoice.config.TaxRule;
-import com.orderflow.order.invoice.services.TaxCalculator;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -32,7 +31,6 @@ class TaxCalculatorTest {
 
     @Test
     void baseAndTaxAlwaysAddUpToTotal() {
-        // कई अजीब रकमों पर जाँच: जोड़ हमेशा कुल के बराबर होना चाहिए, एक पैसा भी इधर-उधर नहीं
         for (String g : new String[]{"0.01", "1", "99.99", "333.33", "1234.56", "9999.99", "100000"}) {
             var b = TaxCalculator.calculateInclusive(bd(g),
                     List.of(new TaxRule("CGST", bd("9")), new TaxRule("SGST", bd("9"))));

@@ -8,8 +8,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-// सिर्फ़ ADMIN (SecurityConfig में /api/admin/** पर hasRole("ADMIN") है)
-// ध्यान दें: सिर्फ़ पढ़ने के endpoint हैं। Audit को बदलने या मिटाने का कोई रास्ता जानबूझकर नहीं बनाया।
 @RestController
 @RequestMapping("/api/admin/audit")
 public class AuditController {
