@@ -2,11 +2,10 @@ package com.orderflow.order.invoice.config;
 
 import java.math.BigDecimal;
 
-// एक टैक्स का नियम, जैसे  CGST 9%  या  GST 18%
 public class TaxRule {
 
     private String name;
-    private BigDecimal rate;   // प्रतिशत में: 9 का मतलब 9%
+    private BigDecimal rate;
 
     public TaxRule() {}
 

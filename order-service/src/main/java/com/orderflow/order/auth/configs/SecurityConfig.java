@@ -24,9 +24,9 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http,
-                                           JwtService jwtService,
-                                           ObjectMapper objectMapper) throws Exception {
+    public SecurityFilterChain filterChain(
+            HttpSecurity http, JwtService jwtService,
+            ObjectMapper objectMapper) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

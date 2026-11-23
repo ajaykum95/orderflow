@@ -8,9 +8,6 @@ import org.springframework.stereotype.Component;
 import java.time.LocalDate;
 import java.time.ZoneId;
 
-// हर रात (भारतीय समय) बीते कल की report अपने-आप बनाता है।
-// Cron application.yml के app.report.daily-cron से बदला जा सकता है।
-// दो instance चलें तो दोनों एक ही document लिखेंगे (तारीख = _id), इसलिए कोई दोहराव नहीं।
 @Component
 public class DailyReportScheduler {
 
@@ -28,10 +25,10 @@ public class DailyReportScheduler {
         LocalDate yesterday = LocalDate.now(IST).minusDays(1);
         try {
             var report = reportService.generate(yesterday);
-            log.info("Daily report बनी: {} -> {} orders, {} पूरे", yesterday,
+            log.info("Daily report created: {} -> {} total orders {}", yesterday,
                     report.getTotalOrders(), report.getCompletedOrders());
         } catch (Exception e) {
-            log.error("Daily report ({}) नहीं बन सकी", yesterday, e);   // scheduler बंद न हो, अगली रात फिर चलेगा
+            log.error("Daily report ({}) not generated", yesterday, e);
         }
     }
 }

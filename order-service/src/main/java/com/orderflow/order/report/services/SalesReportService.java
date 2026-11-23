@@ -7,7 +7,6 @@ import java.util.List;
 
 public interface SalesReportService {
 
-    // उस दिन की report अभी बनाओ (पहले से हो तो नई से बदल दो)
     DailySalesReport generate(LocalDate date);
 
     DailySalesReport get(LocalDate date);

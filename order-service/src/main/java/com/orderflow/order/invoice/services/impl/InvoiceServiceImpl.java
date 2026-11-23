@@ -35,9 +35,10 @@ public class InvoiceServiceImpl implements InvoiceService {
     private final InvoicePdfGenerator pdfGenerator;
     private final InvoiceProperties props;
 
-    public InvoiceServiceImpl(InvoiceRepository invoices, OrderRepository orders,
-                              InvoiceNumberGenerator numbers, InvoicePdfGenerator pdfGenerator,
-                              InvoiceProperties props) {
+    public InvoiceServiceImpl(
+            InvoiceRepository invoices, OrderRepository orders,
+            InvoiceNumberGenerator numbers, InvoicePdfGenerator pdfGenerator,
+            InvoiceProperties props) {
         this.invoices = invoices;
         this.orders = orders;
         this.numbers = numbers;
@@ -45,12 +46,10 @@ public class InvoiceServiceImpl implements InvoiceService {
         this.props = props;
     }
 
-    // नंबर लेना और invoice save करना एक ही transaction में; कुछ फेल हुआ तो नंबर भी वापस
     @Override
     @Transactional
     public InvoiceResponse generateForOrder(Long orderId) {
 
-        // पहले से बना है? (Temporal ने activity दोबारा चलाई हो तो) -> वही लौटा दो, नया नंबर मत खर्चो
         var existing = invoices.findByOrderId(orderId);
         if (existing.isPresent()) {
             return InvoiceResponse.from(existing.get());
@@ -60,7 +59,7 @@ public class InvoiceServiceImpl implements InvoiceService {
                 .orElseThrow(() -> new IllegalStateException("Order not found: " + orderId));
 
         if (order.getStatus() != OrderStatus.PAID && order.getStatus() != OrderStatus.COMPLETED) {
-            throw new IllegalStateException("Invoice सिर्फ़ paid order का बनता है; order अभी " + order.getStatus() + " है");
+            throw new IllegalStateException("Invoices are only generated for paid orders, currently order status is " + order.getStatus());
         }
 
         Instant now = Instant.now();
@@ -88,7 +87,6 @@ public class InvoiceServiceImpl implements InvoiceService {
         return InvoiceResponse.from(findAuthorized(orderId, requesterEmail, isAdmin));
     }
 
-    // PDF हर बार invoice के डेटा से बनता है; डेटा बदलता नहीं, इसलिए PDF हमेशा एक जैसा
     @Override
     @Transactional(readOnly = true)
     public PdfFile getPdf(Long orderId, String requesterEmail, boolean isAdmin) {
@@ -99,8 +97,7 @@ public class InvoiceServiceImpl implements InvoiceService {
     private Invoice findAuthorized(Long orderId, String email, boolean isAdmin) {
         return invoices.findByOrderId(orderId)
                 .filter(i -> isAdmin || i.getCustomerEmail().equals(email))
-                // दूसरे का हो तब भी 404, ताकि पता न चले कि मौजूद है
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "Invoice not found (order अभी पूरा नहीं हुआ हो सकता है)"));
+                        "Invoice not found (order may not be completed yet)"));
     }
 }

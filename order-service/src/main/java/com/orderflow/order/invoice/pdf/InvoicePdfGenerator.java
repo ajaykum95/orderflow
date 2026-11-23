@@ -24,8 +24,6 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 
-// OpenPDF से invoice का PDF बनाता है।
-// ध्यान: PDF के सामान्य font में रुपये का चिह्न (₹) नहीं होता, इसलिए "INR" लिखा है।
 @Component
 public class InvoicePdfGenerator {
 
@@ -46,7 +44,6 @@ public class InvoicePdfGenerator {
             doc.add(new Paragraph("TAX INVOICE", TITLE));
             doc.add(new Paragraph(" "));
 
-            // ऊपर: दुकान की जानकारी (बाएँ) और invoice की जानकारी (दाएँ)
             PdfPTable head = new PdfPTable(2);
             head.setWidthPercentage(100);
             head.addCell(sellerCell(inv.getSellerName(),
@@ -58,7 +55,6 @@ public class InvoicePdfGenerator {
             doc.add(head);
             doc.add(new Paragraph(" "));
 
-            // बीच में: items की तालिका
             PdfPTable items = new PdfPTable(new float[]{5, 1.2f, 2, 2});
             items.setWidthPercentage(100);
             header(items, "Item", Element.ALIGN_LEFT);
@@ -74,7 +70,6 @@ public class InvoicePdfGenerator {
             doc.add(items);
             doc.add(new Paragraph(" "));
 
-            // नीचे: टैक्स और कुल
             PdfPTable sum = new PdfPTable(new float[]{7, 3});
             sum.setWidthPercentage(60);
             sum.setHorizontalAlignment(Element.ALIGN_RIGHT);
@@ -91,7 +86,7 @@ public class InvoicePdfGenerator {
 
             doc.close();
         } catch (DocumentException e) {
-            throw new IllegalStateException("PDF बनाने में गड़बड़ी", e);
+            throw new IllegalStateException("Error in PDF preparation", e);
         }
         return out.toByteArray();
     }
@@ -104,7 +99,6 @@ public class InvoicePdfGenerator {
         return new Phrase(s, NORMAL);
     }
 
-    // दुकान का नाम मोटे अक्षरों में, उसके नीचे पता और GSTIN
     private static PdfPCell sellerCell(String name, String details) {
         Phrase p = new Phrase();
         p.add(new Chunk(name + "\n", BOLD));

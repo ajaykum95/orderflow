@@ -4,12 +4,10 @@ import jakarta.persistence.*;
 
 import java.time.Instant;
 
-// "इस order की यह email भेजी जा चुकी है" का रिकॉर्ड।
-// Temporal activity दोबारा चलाए, तो हम इसे देखकर दूसरी email नहीं भेजते।
 @Entity
 @Table(
     name = "notification_logs",
-    uniqueConstraints = @UniqueConstraint(columnNames = {"order_id", "type"})   // एक order की एक तरह की एक ही email
+    uniqueConstraints = @UniqueConstraint(columnNames = {"order_id", "type"})
 )
 public class NotificationLog {
 

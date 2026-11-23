@@ -35,11 +35,12 @@ public class NotificationServiceImpl implements NotificationService {
     private final InvoiceService invoices;
     private final NotificationLogRepository logs;
     private final NotificationProperties props;
-    private final InvoiceProperties invoiceProps;   // दुकान का नाम यहीं से
+    private final InvoiceProperties invoiceProps;
 
-    public NotificationServiceImpl(JavaMailSender mailSender, OrderRepository orders, InvoiceService invoices,
-                                   NotificationLogRepository logs, NotificationProperties props,
-                                   InvoiceProperties invoiceProps) {
+    public NotificationServiceImpl(
+            JavaMailSender mailSender, OrderRepository orders, InvoiceService invoices,
+            NotificationLogRepository logs, NotificationProperties props,
+            InvoiceProperties invoiceProps) {
         this.mailSender = mailSender;
         this.orders = orders;
         this.invoices = invoices;
@@ -50,21 +51,18 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Override
     public void sendOrderConfirmation(Long orderId) {
-        if (!props.isEnabled()) { log.info("[order {}] notifications बंद हैं", orderId); return; }
+        if (!props.isEnabled()) { log.info("[order {}] notifications is closed", orderId); return; }
 
-        // पहले ही भेज चुके हैं? तो कुछ मत करो (Temporal ने activity दोबारा चलाई होगी)
         if (logs.existsByOrderIdAndType(orderId, NotificationType.ORDER_CONFIRMED)) {
-            log.info("[order {}] confirmation email पहले ही जा चुकी है", orderId);
+            log.info("[order {}] Confirmation email has already been sent", orderId);
             return;
         }
 
         Order order = load(orderId);
         if (order.getStatus() != OrderStatus.PAID && order.getStatus() != OrderStatus.COMPLETED) {
-            // रद्द order को "confirmed" की email कभी नहीं जानी चाहिए
-            throw new IllegalStateException("Confirmation सिर्फ़ paid order की जाती है; order अभी " + order.getStatus() + " है");
+            throw new IllegalStateException("Confirmation is only sent for paid orders; order status is currently " + order.getStatus());
         }
 
-        // invoice हो तो उसे और उसका PDF जोड़ो; न हो (step हटा हो) तो बिना invoice के भेज दो
         InvoiceResponse invoice = null;
         PdfFile pdf = null;
         try {
@@ -83,16 +81,16 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Override
     public void sendOrderCancellation(Long orderId) {
-        if (!props.isEnabled()) { log.info("[order {}] notifications बंद हैं", orderId); return; }
+        if (!props.isEnabled()) { log.info("[order {}] notifications is closed.", orderId); return; }
 
         if (logs.existsByOrderIdAndType(orderId, NotificationType.ORDER_CANCELLED)) {
-            log.info("[order {}] cancellation email पहले ही जा चुकी है", orderId);
+            log.info("[order {}] Cancellation email has already been sent", orderId);
             return;
         }
 
         Order order = load(orderId);
         if (order.getStatus() != OrderStatus.CANCELLED && order.getStatus() != OrderStatus.FAILED) {
-            log.warn("[order {}] order {} है, cancellation email नहीं भेज रहे", orderId, order.getStatus());
+            log.warn("[order {}] Order is {}, skipping cancellation email", orderId, order.getStatus());
             return;
         }
 
@@ -101,7 +99,6 @@ public class NotificationServiceImpl implements NotificationService {
         record(orderId, NotificationType.ORDER_CANCELLED, order.getCustomerEmail());
     }
 
-    // MailSendException (SMTP बंद/धीमा) जानबूझकर नहीं पकड़ी: वह सामान्य exception है, Temporal retry करेगा
     private void send(String to, Content content, PdfFile pdf) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
@@ -114,9 +111,9 @@ public class NotificationServiceImpl implements NotificationService {
                 helper.addAttachment(pdf.fileName(), new ByteArrayResource(pdf.content()), "application/pdf");
             }
             mailSender.send(message);
-            log.info("Email भेजी: to={}, subject={}", to, content.subject());
+            log.info("Email Sent: to={}, subject={}", to, content.subject());
         } catch (MessagingException e) {
-            throw new IllegalStateException("Email बनाने में गड़बड़ी", e);
+            throw new IllegalStateException("Failed to create email", e);
         }
     }
 
@@ -124,8 +121,7 @@ public class NotificationServiceImpl implements NotificationService {
         try {
             logs.save(new NotificationLog(orderId, type, recipient));
         } catch (DataIntegrityViolationException e) {
-            // दो activity एक साथ चलीं और दूसरे ने पहले ही लिख दिया; कोई बात नहीं
-            log.info("[order {}] {} का रिकॉर्ड पहले से है", orderId, type);
+            log.info("[order {}] Record for {} already exists", orderId, type);
         }
     }
 

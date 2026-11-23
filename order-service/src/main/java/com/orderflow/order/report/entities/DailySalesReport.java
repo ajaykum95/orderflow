@@ -7,8 +7,6 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 
-// एक दिन की बिक्री का "स्नैपशॉट", MongoDB में। _id वही तारीख है ("2026-11-21"),
-// इसलिए एक दिन की एक ही report रहती है; दोबारा बनाने पर वही document नया हो जाता है।
 @Document(collection = "daily_sales_reports")
 public class DailySalesReport {
 
@@ -34,16 +32,16 @@ public class DailySalesReport {
     }
 
     @Id
-    private String date;                 // yyyy-MM-dd (भारतीय समय का दिन)
+    private String date;                 // yyyy-MM-dd
 
     private Instant generatedAt;
     private long totalOrders;
     private long completedOrders;
     private long cancelledOrders;
     private long failedOrders;
-    private long inProgressOrders;       // PENDING / STOCK_RESERVED / PAID: अभी चल रहे
-    private BigDecimal grossSales;       // सिर्फ़ COMPLETED orders का कुल
-    private BigDecimal taxCollected;     // उन्हीं के invoices में टैक्स
+    private long inProgressOrders;       // PENDING / STOCK_RESERVED / PAID
+    private BigDecimal grossSales;
+    private BigDecimal taxCollected;
     private BigDecimal averageOrderValue;
     private List<TopProduct> topProducts;
 

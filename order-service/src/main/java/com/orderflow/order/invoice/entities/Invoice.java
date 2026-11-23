@@ -7,8 +7,6 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
-// Invoice एक बार बनने के बाद बदलता नहीं (कोई setter नहीं)।
-// दुकान का नाम/GSTIN भी invoice में ही रखा है, ताकि config बाद में बदले तब भी पुराना invoice वैसा ही रहे।
 @Entity
 @Table(name = "invoices")
 public class Invoice {
@@ -20,7 +18,6 @@ public class Invoice {
     @Column(nullable = false, unique = true)
     private String invoiceNumber;
 
-    // एक order का एक ही invoice; database खुद दोहराव रोकता है
     @Column(nullable = false, unique = true)
     private Long orderId;
 
@@ -56,9 +53,10 @@ public class Invoice {
 
     protected Invoice() {}
 
-    public Invoice(String invoiceNumber, Long orderId, String customerEmail, String currency,
-                   String sellerName, String sellerAddress, String sellerGstin,
-                   BigDecimal taxableAmount, BigDecimal totalTax, BigDecimal totalAmount, Instant issuedAt) {
+    public Invoice(
+            String invoiceNumber, Long orderId, String customerEmail, String currency,
+            String sellerName, String sellerAddress, String sellerGstin,
+            BigDecimal taxableAmount, BigDecimal totalTax, BigDecimal totalAmount, Instant issuedAt) {
         this.invoiceNumber = invoiceNumber;
         this.orderId = orderId;
         this.customerEmail = customerEmail;

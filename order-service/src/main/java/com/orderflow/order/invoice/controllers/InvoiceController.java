@@ -27,7 +27,6 @@ public class InvoiceController {
                 invoiceService.getByOrder(orderId, auth.getName(), isAdmin(auth))));
     }
 
-    // जानबूझकर mapping में produces नहीं लगाया: वरना 404 जैसे JSON error का जवाब भी PDF माँगने लगता
     @GetMapping("/pdf")
     public ResponseEntity<byte[]> pdf(@PathVariable Long orderId, Authentication auth) {
         PdfFile file = invoiceService.getPdf(orderId, auth.getName(), isAdmin(auth));

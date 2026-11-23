@@ -32,7 +32,7 @@ public class AuditServiceImpl implements AuditService {
         } catch (DuplicateKeyException e) {
             log.debug("[order {}] {} already registered.", orderId, type);
         } catch (Exception e) {
-            log.error("[order {}] audit घटना {} दर्ज नहीं हो सकी (order पर असर नहीं)", orderId, type, e);
+            log.error("[order {}] Could not record audit event {} (does not affect order)", orderId, type, e);
         }
     }
 

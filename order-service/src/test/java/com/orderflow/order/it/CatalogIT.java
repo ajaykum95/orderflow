@@ -34,7 +34,6 @@ class CatalogIT extends IntegrationTestBase {
         String name = "Phone-" + uid();
         long id = createProduct(admin, name, "500.00", 10);
 
-        // बिना token के भी दिखता है
         mvc.perform(get("/api/products/" + id))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.name").value(name))
@@ -76,7 +75,6 @@ class CatalogIT extends IntegrationTestBase {
         mvc.perform(get("/api/products/" + id)).andExpect(status().isNotFound());
     }
 
-    // इस पूरे project की सबसे ज़रूरी जाँचों में से एक: stock कभी माइनस नहीं होना चाहिए
     @Test
     void concurrentReservationsNeverOversell() throws Exception {
         long id = createProduct(adminToken(), "Scarce-" + uid(), "100.00", 5);
@@ -87,13 +85,13 @@ class CatalogIT extends IntegrationTestBase {
         List<Future<Boolean>> results = new ArrayList<>();
         for (int i = 0; i < buyers; i++) {
             results.add(pool.submit(() -> {
-                startTogether.await();                    // सब एक साथ दौड़ें
+                startTogether.await();
                 try {
                     productService.reserveStock(id, 1);
-                    return true;                          // मिल गया
+                    return true;
                 } catch (ResponseStatusException e) {
                     assertThat(e.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
-                    return false;                         // stock ख़त्म
+                    return false;
                 }
             }));
         }
@@ -105,8 +103,8 @@ class CatalogIT extends IntegrationTestBase {
         }
         pool.shutdown();
 
-        assertThat(succeeded).as("कितनों को माल मिला").isEqualTo(5);
-        assertThat(stockOf(id)).as("बचा हुआ stock").isZero();
+        assertThat(succeeded).as("How many received the goods?").isEqualTo(5);
+        assertThat(stockOf(id)).as("Remaining stock").isZero();
     }
 
     @Test

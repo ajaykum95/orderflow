@@ -11,6 +11,5 @@ public interface CompensationActivities {
 
     void markFailedIfPending(Long orderId);
 
-    // नया: rollback पूरा होने पर audit में कारण दर्ज करना
     void recordRollback(Long orderId, String failedStep, String reason);
 }

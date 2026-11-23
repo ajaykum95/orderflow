@@ -16,7 +16,6 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 
-// ⚠️ सिर्फ़ जाँच के लिए (सिर्फ़ ADMIN)। Saga (Module 5) बनने के बाद इसे हटा देंगे।
 @RestController
 @RequestMapping("/api/admin/payments")
 public class PaymentTestController {

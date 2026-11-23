@@ -36,16 +36,14 @@ public class OrderActivitiesImpl implements OrderActivities {
     private final PaymentProvider paymentProvider;
     private final InvoiceService invoiceService;
     private final NotificationService notificationService;
-    private final AuditService audit;                        // नया
+    private final AuditService audit;
     private final WorkflowProperties props;
 
-    public OrderActivitiesImpl(OrderFulfillmentService fulfillment,
-                               OrderRepository orderRepository,
-                               PaymentProvider paymentProvider,
-                               InvoiceService invoiceService,
-                               NotificationService notificationService,
-                               AuditService audit,
-                               WorkflowProperties props) {
+    public OrderActivitiesImpl(
+            OrderFulfillmentService fulfillment, OrderRepository orderRepository,
+            PaymentProvider paymentProvider, InvoiceService invoiceService,
+            NotificationService notificationService, AuditService audit,
+            WorkflowProperties props) {
         this.fulfillment = fulfillment;
         this.orderRepository = orderRepository;
         this.paymentProvider = paymentProvider;
@@ -57,7 +55,7 @@ public class OrderActivitiesImpl implements OrderActivities {
 
     @Override
     public void reserveStock(Long orderId) {
-        log.info("[order {}] stock रोक रहे हैं", orderId);
+        log.info("[order {}] stock stopping", orderId);
         try {
             fulfillment.reserveAll(orderId);
         } catch (ResponseStatusException e) {
@@ -85,7 +83,7 @@ public class OrderActivitiesImpl implements OrderActivities {
             throw ApplicationFailure.newNonRetryableFailure("Payment declined", "PAYMENT_DECLINED");
         }
 
-        log.info("[order {}] payment सफल: {}", orderId, result.paymentId());
+        log.info("[order {}] payment success: {}", orderId, result.paymentId());
         try {
             fulfillment.markPaid(orderId);
         } catch (IllegalStateException e) {
@@ -104,7 +102,7 @@ public class OrderActivitiesImpl implements OrderActivities {
         }
         try {
             InvoiceResponse invoice = invoiceService.generateForOrder(orderId);
-            log.info("[order {}] invoice बना: {}", orderId, invoice.invoiceNumber());
+            log.info("[order {}] invoice created: {}", orderId, invoice.invoiceNumber());
             audit.record(orderId, AuditEventType.INVOICE_ISSUED, SYSTEM,
                     Map.of("invoiceNumber", invoice.invoiceNumber()));
         } catch (IllegalStateException e) {
@@ -138,7 +136,7 @@ public class OrderActivitiesImpl implements OrderActivities {
         } catch (IllegalStateException e) {
             throw ApplicationFailure.newNonRetryableFailure(e.getMessage(), "ORDER_STATE");
         }
-        log.info("[order {}] पूरा हुआ", orderId);
+        log.info("[order {}] completed", orderId);
         audit.record(orderId, AuditEventType.ORDER_COMPLETED, SYSTEM, Map.of());
     }
 }

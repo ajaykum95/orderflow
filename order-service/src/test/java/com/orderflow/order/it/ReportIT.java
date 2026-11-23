@@ -22,8 +22,6 @@ class ReportIT extends IntegrationTestBase {
     @Test
     void dailyReportCountsOrdersAndRanksProducts() throws Exception {
         String admin = adminToken(), cust = customerToken();
-        // इतनी बड़ी कीमत कि यह product हमेशा "सबसे ज़्यादा कमाई" की सूची में सबसे ऊपर रहे,
-        // चाहे database में दूसरे tests के और products हों
         String name = "Report-" + uid();
         long product = createProduct(admin, name, "5000000.00", 10);
 
@@ -50,10 +48,9 @@ class ReportIT extends IntegrationTestBase {
 
         JsonNode top = report.get("topProducts").get(0);
         assertThat(top.get("name").asText()).isEqualTo(name);
-        assertThat(top.get("quantity").asLong()).isEqualTo(3);                       // रद्द वाला नहीं गिना
+        assertThat(top.get("quantity").asLong()).isEqualTo(3);
         assertThat(top.get("revenue").decimalValue()).isEqualByComparingTo("15000000.00");
 
-        // बनी हुई report वैसी ही वापस मिलती है
         MvcResult fetched = mvc.perform(get("/api/admin/reports/daily").param("date", today.toString())
                         .header("Authorization", bearer(admin)))
                 .andExpect(status().isOk()).andReturn();

@@ -15,7 +15,6 @@ import org.slf4j.Logger;
 import java.time.Duration;
 import java.util.List;
 
-// ⚠️ Workflow के code में कभी: random, current time, database, HTTP call, Thread.sleep नहीं।
 @WorkflowImpl(taskQueues = WorkflowConstants.TASK_QUEUE)
 public class OrderWorkflowImpl implements OrderWorkflow {
 
@@ -67,11 +66,10 @@ public class OrderWorkflowImpl implements OrderWorkflow {
                     case WorkflowConstants.INVOICE -> activities.generateInvoice(orderId);
 
                     case WorkflowConstants.NOTIFY -> {
-                        // Email "कोशिश वाला" step है: फेल हो तो paid order रद्द नहीं करते, सिर्फ़ चेतावनी
                         try {
                             activities.sendNotification(orderId);
                         } catch (ActivityFailure e) {
-                            log.warn("Order {} की email नहीं जा सकी (order फिर भी पूरा होगा): {}",
+                            log.warn("Failed to send email for order {} (order will still complete): {}",
                                     orderId, rootMessage(e));
                         }
                     }
@@ -87,7 +85,7 @@ public class OrderWorkflowImpl implements OrderWorkflow {
         } catch (ActivityFailure e) {
             String failedStep = currentStep;
             String reason = rootMessage(e);
-            log.warn("Order {} फेल हुआ at step {}: {}", orderId, failedStep, reason);
+            log.warn("Order {} failed at step {}: {}", orderId, failedStep, reason);
 
             currentStep = "ROLLING_BACK";
             saga.compensate();
@@ -96,14 +94,14 @@ public class OrderWorkflowImpl implements OrderWorkflow {
             try {
                 compensations.recordRollback(orderId, failedStep, reason);
             } catch (ActivityFailure ae) {
-                log.warn("Order {} का rollback-audit दर्ज नहीं हो सका: {}", orderId, rootMessage(ae));
+                log.warn("Failed to record rollback audit for order {}: {}", orderId, rootMessage(ae));
             }
 
             currentStep = "NOTIFYING_CANCELLATION";
             try {
                 activities.sendCancellationNotification(orderId);
             } catch (ActivityFailure ne) {
-                log.warn("Order {} की cancellation email नहीं जा सकी: {}", orderId, rootMessage(ne));
+                log.warn("Failed to send cancellation email for order {}: {}", orderId, rootMessage(ne));
             }
 
             currentStep = "ROLLED_BACK";
@@ -116,9 +114,6 @@ public class OrderWorkflowImpl implements OrderWorkflow {
         return currentStep;
     }
 
-    // सबसे अंदर की असली वजह, साफ़ संदेश के साथ।
-    // Temporal की getMessage() में message='...', type='...', nonRetryable=... जैसी सजावट जुड़ी होती है;
-    // getOriginalMessage() सिर्फ़ वही असली संदेश देता है जो activity ने लिखा था (जैसे "Payment declined")
     private static String rootMessage(Throwable t) {
         Throwable c = t;
         while (c.getCause() != null) c = c.getCause();

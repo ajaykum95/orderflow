@@ -17,8 +17,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-// payment-service की नकल (asli payment-service चलाए बिना)। टेस्ट तय करता है कि यह कैसा बर्ताव करे,
-// और बाद में देख सकता है कि हमने इसे क्या-क्या भेजा।
 public class FakePaymentGateway {
 
     public enum Mode { OK, DECLINE, DOWN }
@@ -27,7 +25,7 @@ public class FakePaymentGateway {
     private final ObjectMapper mapper = new ObjectMapper();
 
     private volatile Mode mode = Mode.OK;
-    private final List<String> chargeKeys = new CopyOnWriteArrayList<>();      // हर charge की Idempotency-Key
+    private final List<String> chargeKeys = new CopyOnWriteArrayList<>();
     private final List<String> refundedIds = new CopyOnWriteArrayList<>();
     private final Map<String, Long> orderByPaymentId = new ConcurrentHashMap<>();
 
@@ -65,13 +63,11 @@ public class FakePaymentGateway {
 
     public List<String> refundedPaymentIds() { return List.copyOf(refundedIds); }
 
-    // ---------------------------------------------------------------
-
     private MockResponse handle(RecordedRequest request) throws IOException {
         String path = request.getPath();
 
         if ("/api/payments".equals(path)) {
-            chargeKeys.add(request.getHeader("Idempotency-Key"));   // बंद हो तब भी गिनो: retry गिनने के लिए
+            chargeKeys.add(request.getHeader("Idempotency-Key"));
             if (mode == Mode.DOWN) {
                 return new MockResponse().setResponseCode(503);
             }

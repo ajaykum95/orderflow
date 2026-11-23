@@ -8,7 +8,6 @@ import org.springframework.web.util.HtmlUtils;
 import java.math.BigDecimal;
 import java.util.Locale;
 
-// Email का मज़मून। अभी Java में लिखा है; आगे चाहें तो Thymeleaf template में बदल सकते हैं।
 public final class EmailTemplates {
 
     private EmailTemplates() {}
@@ -34,7 +33,6 @@ public final class EmailTemplates {
                 .append(money(order.getTotalAmount())).append("</b></td></tr>");
         h.append("</table>");
 
-        // invoice का हिस्सा सिर्फ़ तब, जब invoice बना हो (workflow में INVOICE step हट भी सकता है)
         if (invoice != null) {
             h.append("<p>Invoice no: <b>").append(HtmlUtils.htmlEscape(invoice.invoiceNumber())).append("</b><br>");
             h.append("Taxable value: ").append(money(invoice.taxableAmount())).append("<br>");
@@ -51,7 +49,6 @@ public final class EmailTemplates {
         return new Content(subject, h.toString());
     }
 
-    // Customer को अंदर की तकनीकी वजह (जैसे "circuit breaker open") नहीं बताते; सिर्फ़ सीधी, सच्ची बात
     public static Content orderCancelled(String storeName, Order order) {
         String html = "<div style=\"font-family:Arial,sans-serif;max-width:560px\">"
                 + "<h2>We could not complete your order</h2>"

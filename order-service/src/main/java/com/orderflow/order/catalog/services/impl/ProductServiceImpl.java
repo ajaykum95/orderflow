@@ -33,7 +33,7 @@ public class ProductServiceImpl implements ProductService {
     public ProductResponse update(Long id, ProductRequest r) {
         Product p = findActive(id);
         p.update(r.name(), r.description(), r.price(), r.stock());
-        return ProductResponse.from(p);   // @Transactional की वजह से अपने-आप save हो जाता है
+        return ProductResponse.from(p);
     }
 
     @Override

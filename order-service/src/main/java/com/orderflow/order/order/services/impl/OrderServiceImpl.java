@@ -27,7 +27,7 @@ public class OrderServiceImpl implements OrderService {
     private final OrderRepository orderRepository;
     private final ProductService productService;
     private final OrderWorkflowStarter workflowStarter;
-    private final AuditService auditService;               // नया
+    private final AuditService auditService;
 
     public OrderServiceImpl(OrderRepository orderRepository,
                             ProductService productService,
@@ -57,7 +57,6 @@ public class OrderServiceImpl implements OrderService {
         try {
             Order saved = orderRepository.save(order);
 
-            // नया: audit में पहली घटना (workflow चालू होने से पहले, ताकि क्रम सही रहे)
             auditService.record(saved.getId(), AuditEventType.ORDER_CREATED, email, Map.of(
                     "totalAmount", saved.getTotalAmount().toPlainString(),
                     "itemCount", saved.getItems().size()));

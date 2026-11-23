@@ -7,14 +7,6 @@ import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 
-// टैक्स का हिसाब। इसमें Spring या database कुछ नहीं, सिर्फ़ गणित; इसलिए test करना आसान है।
-//
-// हमारे दाम "टैक्स समेत" (inclusive) हैं, जैसे दुकानों में MRP होता है।
-// यानी customer ने जो रकम दी, वही invoice का कुल है; invoice सिर्फ़ यह बताता है कि उसमें टैक्स कितना है।
-//
-//   कुल (gross) = 1000, GST 18%
-//   टैक्स से पहले की रकम = 1000 / 1.18 = 847.46
-//   GST                  = 847.46 x 18% = 152.54
 public final class TaxCalculator {
 
     private static final BigDecimal HUNDRED = new BigDecimal("100");
@@ -37,11 +29,9 @@ public final class TaxCalculator {
             totalRate = totalRate.add(r.getRate());
         }
 
-        // टैक्स से पहले की रकम
         BigDecimal divisor = BigDecimal.ONE.add(totalRate.divide(HUNDRED, 10, RoundingMode.HALF_UP));
         BigDecimal base = total.divide(divisor, 2, RoundingMode.HALF_UP);
 
-        // हर नियम का टैक्स
         List<TaxLine> lines = new ArrayList<>();
         BigDecimal taxSum = BigDecimal.ZERO;
         for (TaxRule r : rules) {
@@ -50,8 +40,6 @@ public final class TaxCalculator {
             taxSum = taxSum.add(amount);
         }
 
-        // पैसे में गोल करने से 1-2 पैसे का फ़र्क आ सकता है। उसे आख़िरी टैक्स-लाइन में जोड़ देते हैं,
-        // ताकि हमेशा  (टैक्स से पहले की रकम + टैक्स) == कुल  सटीक रहे।
         BigDecimal diff = total.subtract(base).subtract(taxSum);
         if (diff.signum() != 0) {
             int last = lines.size() - 1;

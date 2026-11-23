@@ -32,9 +32,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-// हर integration test की साझा बुनियाद। असली Postgres, MongoDB और Temporal Docker में चलते हैं
-// (Testcontainers), इसलिए test वैसे ही माहौल में चलता है जैसा असली app।
-// Container पूरे test-run में सिर्फ़ एक बार चालू होते हैं (static block), हर test class पर नहीं।
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
@@ -46,7 +43,6 @@ public abstract class IntegrationTestBase {
             new PostgreSQLContainer<>(DockerImageName.parse("postgres:16"));
     private static final GenericContainer<?> MONGO =
             new GenericContainer<>(DockerImageName.parse("mongo:7")).withExposedPorts(27017);
-    // पक्का काम करना हो तो "latest" की जगह कोई तय version (tag) लगाएँ, ताकि CI अचानक न बदले
     private static final GenericContainer<?> TEMPORAL =
             new GenericContainer<>(DockerImageName.parse("temporalio/temporal:latest"))
                     .withCommand("server", "start-dev", "--ip", "0.0.0.0")
@@ -54,7 +50,6 @@ public abstract class IntegrationTestBase {
                     .withStartupTimeout(Duration.ofMinutes(3));
 
     static {
-        // Windows पर Java का "Asia/Calcutta" नाम Postgres 16 को पसंद नहीं (पहले भी यही दिक्कत आई थी)
         TimeZone.setDefault(TimeZone.getTimeZone("Asia/Kolkata"));
         POSTGRES.start();
         MONGO.start();
@@ -63,7 +58,6 @@ public abstract class IntegrationTestBase {
         GATEWAY.start();
     }
 
-    // Port खुलना और server का तैयार होना दो अलग बातें हैं; तैयार होने तक रुकते हैं
     private static void waitForTemporal() {
         long deadline = System.nanoTime() + Duration.ofSeconds(90).toNanos();
         while (System.nanoTime() < deadline) {
@@ -72,7 +66,6 @@ public abstract class IntegrationTestBase {
                     return;
                 }
             } catch (Exception ignored) {
-                // अभी तैयार नहीं; फिर कोशिश
             }
             try {
                 Thread.sleep(1000);
@@ -100,16 +93,11 @@ public abstract class IntegrationTestBase {
     @Autowired protected JdbcTemplate jdbc;
     @Autowired private CircuitBreakerRegistry circuitBreakers;
 
-    // हर test के बाद सब कुछ साफ़: gateway सामान्य और circuit breaker बंद (CLOSED),
-    // वरना एक test का खुला breaker अगले test को बिगाड़ देगा
     @AfterEach
     void resetSharedState() {
         GATEWAY.reset();
         circuitBreakers.circuitBreaker("paymentService").reset();
     }
-
-    // ------------------------------------------------------------------
-    // users और tokens
 
     protected static String uid() {
         return UUID.randomUUID().toString().substring(0, 8);
@@ -136,17 +124,12 @@ public abstract class IntegrationTestBase {
         return login(email, "password123");
     }
 
-    // ADMIN बनाने का एक ही रास्ता है: database में role बदलना (register हमेशा CUSTOMER बनाता है);
-    // फिर दोबारा login, क्योंकि पुराने token में पुराना role लिखा है
     protected String adminToken() throws Exception {
         String email = "admin-" + uid() + "@test.com";
         register(email, "password123");
         jdbc.update("update users set role = 'ADMIN' where email = ?", email);
         return login(email, "password123");
     }
-
-    // ------------------------------------------------------------------
-    // products और orders
 
     protected long createProduct(String adminToken, String name, String price, int stock) throws Exception {
         MvcResult res = mvc.perform(post("/api/admin/products")
@@ -185,14 +168,10 @@ public abstract class IntegrationTestBase {
         return json(res).at("/data/status").asText();
     }
 
-    // Workflow पीछे चलता है, इसलिए नतीजे के लिए इंतज़ार करना पड़ता है (Thread.sleep नहीं, पूछते रहना)
     protected void awaitStatus(String token, long orderId, String expected, Duration timeout) {
         await().atMost(timeout).pollInterval(Duration.ofMillis(500)).untilAsserted(() ->
                 assertThat(orderStatus(token, orderId)).as("order %d की हालत", orderId).isEqualTo(expected));
     }
-
-    // ------------------------------------------------------------------
-    // audit
 
     protected List<String> auditTypes(String adminToken, long orderId) throws Exception {
         List<String> types = new ArrayList<>();
@@ -216,13 +195,10 @@ public abstract class IntegrationTestBase {
         return null;
     }
 
-    // Audit की घटना order की हालत बदलने के ठीक बाद लिखी जाती है, इसलिए उसके लिए भी थोड़ा इंतज़ार
     protected void awaitAudit(String adminToken, long orderId, String type) {
         await().atMost(Duration.ofSeconds(15)).pollInterval(Duration.ofMillis(300)).untilAsserted(() ->
                 assertThat(auditTypes(adminToken, orderId)).contains(type));
     }
-
-    // ------------------------------------------------------------------
 
     protected JsonNode json(MvcResult result) throws Exception {
         return mapper.readTree(result.getResponse().getContentAsString(StandardCharsets.UTF_8));

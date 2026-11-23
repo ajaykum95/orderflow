@@ -37,11 +37,9 @@ public class SalesReportServiceImpl implements SalesReportService {
 
     @Override
     public DailySalesReport generate(LocalDate date) {
-        // "दिन" भारतीय समय के हिसाब से: रात 12 से अगली रात 12 तक
         Instant from = date.atStartOfDay(IST).toInstant();
         Instant to = date.plusDays(1).atStartOfDay(IST).toInstant();
 
-        // हर status की गिनती और रकम
         Map<OrderStatus, Long> counts = new EnumMap<>(OrderStatus.class);
         Map<OrderStatus, BigDecimal> sums = new EnumMap<>(OrderStatus.class);
         for (Object[] row : orders.statusSummary(from, to)) {
@@ -73,23 +71,23 @@ public class SalesReportServiceImpl implements SalesReportService {
 
         DailySalesReport report = new DailySalesReport(date.toString(), Instant.now(), total, completed,
                 cancelled, failed, inProgress, gross, tax, average, top);
-        return reports.save(report);   // _id तारीख है, इसलिए दोबारा बनाने पर पुरानी report बदल जाती है
+        return reports.save(report);
     }
 
     @Override
     public DailySalesReport get(LocalDate date) {
         return reports.findById(date.toString())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "इस तारीख की report अभी बनी नहीं है (POST /api/admin/reports/daily?date=" + date + " से बनाएँ)"));
+                        "Report for this date has not been generated yet (generate it via POST /api/admin/reports/daily?date=" + date + ")"));
     }
 
     @Override
     public List<DailySalesReport> range(LocalDate from, LocalDate to) {
         if (from.isAfter(to)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "from, to से बाद की नहीं हो सकती");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "'from' date cannot be after the 'to' date");
         }
         if (from.plusDays(92).isBefore(to)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "एक बार में ज़्यादा से ज़्यादा 93 दिन");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Maximum 93 days at a time");
         }
         return reports.findByDateBetweenOrderByDateAsc(from.toString(), to.toString());
     }

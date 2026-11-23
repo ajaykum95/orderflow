@@ -30,8 +30,9 @@ public class CompensationActivitiesImpl implements CompensationActivities {
     private final OrderRepository orderRepository;
     private final AuditService audit;
 
-    public CompensationActivitiesImpl(OrderFulfillmentService fulfillment, PaymentProvider paymentProvider,
-                                      OrderRepository orderRepository, AuditService audit) {
+    public CompensationActivitiesImpl(
+            OrderFulfillmentService fulfillment, PaymentProvider paymentProvider,
+            OrderRepository orderRepository, AuditService audit) {
         this.fulfillment = fulfillment;
         this.paymentProvider = paymentProvider;
         this.orderRepository = orderRepository;
@@ -40,11 +41,9 @@ public class CompensationActivitiesImpl implements CompensationActivities {
 
     @Override
     public void releaseStockAndCancel(Long orderId) {
-        log.warn("[order {}] ROLLBACK: stock वापस और order रद्द", orderId);
+        log.warn("[order {}] ROLLBACK: stock reversed order cancelled", orderId);
         fulfillment.releaseAndCancel(orderId);
 
-        // audit में "stock वापस" तभी लिखो जब सच में कुछ वापस हुआ (order CANCELLED बना);
-        // कुछ रोका ही न गया हो (order PENDING/FAILED) तो यह घटना झूठ होगी
         orderRepository.findById(orderId)
                 .filter(o -> o.getStatus() == OrderStatus.CANCELLED)
                 .ifPresent(o -> audit.record(orderId, AuditEventType.STOCK_RELEASED, SYSTEM, Map.of()));
@@ -52,7 +51,7 @@ public class CompensationActivitiesImpl implements CompensationActivities {
 
     @Override
     public void refundPayment(String paymentId) {
-        log.warn("ROLLBACK: payment {} का refund", paymentId);
+        log.warn("ROLLBACK: Refunding payment {}", paymentId);
         PaymentResult result;
         try {
             result = paymentProvider.refund(paymentId);

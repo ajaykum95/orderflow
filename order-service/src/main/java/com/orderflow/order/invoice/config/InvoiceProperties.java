@@ -14,7 +14,7 @@ public class InvoiceProperties {
 
     private String sellerName = "OrderFlow Demo Store";
     private String sellerAddress = "Demo Address, India";
-    private String sellerGstin = "00AAAAA0000A1Z5";   // नकली; असली GSTIN कभी demo में न डालें
+    private String sellerGstin = "00AAAAA0000A1Z5";
     private String currency = "INR";
     private List<TaxRule> taxRules = new ArrayList<>(List.of(new TaxRule("GST", new BigDecimal("18"))));
 
@@ -24,7 +24,7 @@ public class InvoiceProperties {
             for (TaxRule r : taxRules) {
                 if (r.getName() == null || r.getName().isBlank() || r.getRate() == null
                         || r.getRate().signum() < 0 || r.getRate().compareTo(new BigDecimal("100")) > 0) {
-                    throw new IllegalStateException("app.invoice.tax-rules में हर नियम का नाम और 0 से 100 के बीच rate चाहिए");
+                    throw new IllegalStateException("Each rule in app.invoice.tax-rules must have a name and a rate between 0 and 100");
                 }
             }
         }
