@@ -1,6 +1,6 @@
 # OrderFlow
 
-[![CI](https://github.com/ajaykum95/orderflow/actions/workflows/ci.yml/badge.svg)](https://github.com/<USER>/<REPO>/actions/workflows/ci.yml)
+[![CI](https://github.com/ajaykum95/orderflow/actions/workflows/ci.yml/badge.svg)](https://github.com/ajaykum95/orderflow/actions/workflows/ci.yml)
 ![Coverage](.github/badges/jacoco.svg)
 ![Branches](.github/badges/branches.svg)
 
