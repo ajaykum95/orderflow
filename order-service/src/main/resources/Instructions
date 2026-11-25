@@ -9,3 +9,9 @@ compose docker down -v
 
 #Run application
 mvn spring-boot:run
+
+#MailHog
+http://localhost:8025/
+
+#Workflow
+http://localhost:8233/namespaces/default/workflows/order-15/01a20334-95f0-763d-b72f-890f110cf2c9/timeline
