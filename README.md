@@ -1,17 +1,17 @@
 # OrderFlow
-Order -> Stock -> Payment -> Invoice -> Email (failure पर rollback)
+Order -> Stock -> Payment -> Invoice -> Email (rollback on failure)
 
-## चलाने के लिए
+## How to Run
 1. docker compose up -d
 2. cd order-service && mvn spring-boot:run
 
-## Modules की स्थिति
+## Module Status
 - [ ] 1 Auth  - [ ] 2 Catalog  - [ ] 3 Order  - [ ] 4 Payment
 - [ ] 5 Saga  - [ ] 6 Invoice  - [ ] 7 Notification  - [ ] 8 Audit
 - [ ] 9 Tests - [ ] 10 Docs    - [ ] 11 Deploy
 
-<!-- README.md में सबसे ऊपर, title के नीचे जोड़ें।
-     <USER> और <REPO> की जगह अपना GitHub username और repo का नाम डालें -->
+<!-- Add this at the very top of README.md, right below the title.
+     Replace <USER> and <REPO> with your GitHub username and repository name -->
 
 [![CI](https://github.com/<USER>/<REPO>/actions/workflows/ci.yml/badge.svg)](https://github.com/<USER>/<REPO>/actions/workflows/ci.yml)
 ![Coverage](.github/badges/jacoco.svg)
@@ -19,20 +19,20 @@ Order -> Stock -> Payment -> Invoice -> Email (failure पर rollback)
 
 ---
 
-<!-- README के बाकी हिस्से में यह section जोड़ें -->
+<!-- Add this section to the rest of the README -->
 
-## Tests चलाना
+## Running Tests
 
-| क्या | Command | समय | Docker चाहिए? |
+| What | Command | Time | Docker Required? |
 |---|---|---|---|
-| तेज़ unit tests | `cd order-service && mvn test` | कुछ सेकंड | नहीं |
-| सारे tests + coverage | `cd order-service && mvn verify` | 3-5 मिनट | हाँ |
-| payment-service के tests | `cd payment-service && mvn verify` | कुछ सेकंड | नहीं |
+| Fast unit tests | `cd order-service && mvn test` | A few seconds | No |
+| All tests + coverage | `cd order-service && mvn verify` | 3-5 minutes | Yes |
+| payment-service tests | `cd payment-service && mvn verify` | A few seconds | No |
 
 Coverage report: `order-service/target/site/jacoco/index.html`
 
-### Tests कैसे बने हैं
+### How Tests Are Structured
 
-- **Unit tests** (`*Test.java`): बिना database के, तेज़। हालतों के नियम, टैक्स का हिसाब, invoice नंबर, JWT, email का तर्क
-- **Integration tests** (`*IT.java`): असली Postgres, MongoDB और Temporal Docker में (Testcontainers)। पूरा सफ़र API से workflow तक, payment-service की जगह एक नकली gateway जिसे test जब चाहे बिगाड़ सकता है
-- हर test के बाद gateway और circuit breaker अपनी सामान्य हालत में लौटा दिए जाते हैं, ताकि tests एक-दूसरे को न बिगाड़ें
+- **Unit tests** (`*Test.java`): Without a database, fast. Covers state rules, tax calculations, invoice numbers, JWT, and email logic.
+- **Integration tests** (`*IT.java`): Uses real Postgres, MongoDB, and Temporal in Docker (Testcontainers). Tests the complete flow from API to workflow, replacing `payment-service` with a mock gateway that tests can intentionally break/fail on demand.
+- After every test, the gateway and circuit breaker are reset to their normal state so tests do not interfere with one another.

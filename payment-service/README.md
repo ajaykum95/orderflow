@@ -1,12 +1,12 @@
 # payment-service (mock gateway)
 
-चलाने के लिए:  mvn spring-boot:run   (port 8081)
+To run: `mvn spring-boot:run` (port 8081)
 
-| Method | URL | काम |
+| Method | URL | Action |
 |---|---|---|
-| POST | /api/payments | charge (header: Idempotency-Key) |
-| GET  | /api/payments/{id} | payment देखना |
-| POST | /api/payments/{id}/refund | refund |
-| GET/PUT | /api/chaos | failure-rate / slow-rate बदलना (demo के लिए) |
+| POST | /api/payments | Charge (header: Idempotency-Key) |
+| GET  | /api/payments/{id} | Get payment details |
+| POST | /api/payments/{id}/refund | Refund |
+| GET/PUT | /api/chaos | Change failure-rate / slow-rate (for demo) |
 
-नियम: रकम > 100000 हो तो DECLINED (business decline, retry नहीं होगा)।
+Rule: If amount > 100000, return DECLINED (business decline, will not be retried).

@@ -5,6 +5,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -80,14 +82,32 @@ class AuthIT extends IntegrationTestBase {
                 .andExpect(jsonPath("$.status").value(403));
     }
 
-   /* @Test
+    @Test
     void tamperedTokenIsRejected() throws Exception {
         String token = customerToken();
-        String tampered = token.substring(0, token.length() - 1) + (token.endsWith("A") ? "B" : "A");
 
-        mvc.perform(get("/api/orders").header("Authorization", bearer(tampered)))
+        mvc.perform(get("/api/orders").header("Authorization", bearer(token)))
+                .andExpect(status().isOk());
+
+        mvc.perform(get("/api/orders").header("Authorization", bearer(flipInsideSignature(token))))
                 .andExpect(status().isUnauthorized());
-    }*/
+    }
+
+    @Test
+    void customerCannotForgeAnAdminRoleIntoTheirToken() throws Exception {
+        String token = customerToken();
+        String[] parts = token.split("\\.");
+        String payload = new String(Base64.getUrlDecoder().decode(parts[1]), StandardCharsets.UTF_8);
+        String forgedPayload = payload.replace("\"CUSTOMER\"", "\"ADMIN\"");
+        assertThat(forgedPayload).as("role updated to").isNotEqualTo(payload);
+
+        String forged = parts[0] + "."
+                + Base64.getUrlEncoder().withoutPadding().encodeToString(forgedPayload.getBytes(StandardCharsets.UTF_8))
+                + "." + parts[2];
+
+        mvc.perform(get("/api/admin/audit/orders/1").header("Authorization", bearer(forged)))
+                .andExpect(status().isUnauthorized());
+    }
 
     @Test
     void registrationNeverCreatesAnAdmin() throws Exception {
@@ -100,5 +120,11 @@ class AuthIT extends IntegrationTestBase {
 
         mvc.perform(get("/api/admin/audit/orders/1").header("Authorization", bearer(token)))
                 .andExpect(status().isForbidden());
+    }
+
+    private static String flipInsideSignature(String token) {
+        int i = token.lastIndexOf('.') + 1 + 5;
+        char replacement = token.charAt(i) == 'A' ? 'B' : 'A';
+        return token.substring(0, i) + replacement + token.substring(i + 1);
     }
 }

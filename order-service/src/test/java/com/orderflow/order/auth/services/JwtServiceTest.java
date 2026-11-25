@@ -5,6 +5,9 @@ import com.orderflow.order.auth.entities.User;
 import com.orderflow.order.auth.services.impl.JwtServiceImpl;
 import org.junit.jupiter.api.Test;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -33,10 +36,27 @@ class JwtServiceTest {
     void tamperedTokenIsRejected() {
         JwtService jwt = new JwtServiceImpl(SECRET, 60);
         String token = jwt.generateToken(user);
-        char last = token.charAt(token.length() - 1);
-        String tampered = token.substring(0, token.length() - 1) + (last == 'A' ? 'B' : 'A');
 
+        int i = token.lastIndexOf('.') + 1 + 5;
+        String tampered = token.substring(0, i) + (token.charAt(i) == 'A' ? 'B' : 'A') + token.substring(i + 1);
+
+        assertThat(jwt.isValid(token)).isTrue();
         assertThat(jwt.isValid(tampered)).isFalse();
+    }
+
+    @Test
+    void forgedRoleWithOldSignatureIsRejected() {
+        JwtService jwt = new JwtServiceImpl(SECRET, 60);
+        String[] parts = jwt.generateToken(user).split("\\.");
+        String payload = new String(Base64.getUrlDecoder().decode(parts[1]), StandardCharsets.UTF_8);
+        String forgedPayload = payload.replace("\"CUSTOMER\"", "\"ADMIN\"");
+        assertThat(forgedPayload).isNotEqualTo(payload);
+
+        String forged = parts[0] + "."
+                + Base64.getUrlEncoder().withoutPadding().encodeToString(forgedPayload.getBytes(StandardCharsets.UTF_8))
+                + "." + parts[2];
+
+        assertThat(jwt.isValid(forged)).isFalse();
     }
 
     @Test

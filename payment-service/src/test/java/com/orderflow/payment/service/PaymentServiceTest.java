@@ -14,7 +14,6 @@ import java.math.BigDecimal;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-// Mock gateway का भी अपना व्यवहार है; उसी पर तो पूरा demo टिका है, इसलिए उसकी भी जाँच
 class PaymentServiceTest {
 
     private ChaosSettings chaos;
@@ -22,7 +21,7 @@ class PaymentServiceTest {
 
     @BeforeEach
     void setUp() {
-        chaos = new ChaosSettings(0.0, 0.0, 0);   // शुरू में कोई गड़बड़ी नहीं
+        chaos = new ChaosSettings(0.0, 0.0, 0);
         service = new PaymentService(chaos);
     }
 
@@ -38,7 +37,7 @@ class PaymentServiceTest {
     @Test
     void amountAboveOneLakhIsDeclined() {
         assertThat(service.charge("k1", charge("100000.01")).getStatus()).isEqualTo(PaymentStatus.DECLINED);
-        assertThat(service.charge("k2", charge("100000")).getStatus()).isEqualTo(PaymentStatus.SUCCESS);   // सीमा पर ठीक
+        assertThat(service.charge("k2", charge("100000")).getStatus()).isEqualTo(PaymentStatus.SUCCESS);
     }
 
     @Test
@@ -81,13 +80,12 @@ class PaymentServiceTest {
 
     @Test
     void gatewayOutageIs503AndLeavesNothingBehind() {
-        chaos.update(1.0, null, null);   // हर बार "gateway down"
+        chaos.update(1.0, null, null);
 
         assertThatThrownBy(() -> service.charge("k1", charge("500")))
                 .isInstanceOfSatisfying(ResponseStatusException.class,
                         e -> assertThat(e.getStatusCode()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE));
 
-        // gateway ठीक होने पर वही key से नया payment बनता है: गिरी हुई कोशिश ने कुछ रिकॉर्ड नहीं किया था
         chaos.update(0.0, null, null);
         assertThat(service.charge("k1", charge("500")).getStatus()).isEqualTo(PaymentStatus.SUCCESS);
     }
