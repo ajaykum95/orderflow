@@ -83,3 +83,12 @@ resilience4j:
           - com.orderflow.order.payment.exceptions.PaymentUnavailableException
         ignoreExceptions:
           - io.github.resilience4j.circuitbreaker.CallNotPermittedException
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+    display-request-duration: true
+  paths-to-match: /api/**
